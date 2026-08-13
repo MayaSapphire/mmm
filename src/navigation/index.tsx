@@ -13,9 +13,19 @@ import bell from '../assets/bell.png';
 import newspaper from '../assets/newspaper.png';
 import { Home } from './screens/Home';
 import { NotFound } from './screens/NotFound';
-import { Profile } from './screens/Profile';
 import { Settings } from './screens/Settings';
 import { Updates } from './screens/Updates';
+import { Day } from './screens/Day';
+import { Info } from './screens/Info';
+
+type RootStackParamList = {
+  HomeTabs: undefined;
+  Settings: undefined;
+  Info: undefined;    
+  Day: { date: string };
+  NotFound: undefined;
+};
+
 
 const HomeTabs = createBottomTabNavigator({
   screens: {
@@ -53,7 +63,7 @@ const HomeTabs = createBottomTabNavigator({
   },
 });
 
-const RootStack = createNativeStackNavigator({
+const RootStack = createNativeStackNavigator<RootStackParamList>({
   screens: {
     HomeTabs: createNativeStackScreen({
       screen: HomeTabs,
@@ -62,36 +72,68 @@ const RootStack = createNativeStackNavigator({
         headerShown: false,
       },
     }),
-    Profile: createNativeStackScreen({
-      screen: Profile,
-      linking: {
-        path: ':user(@[a-zA-Z0-9-_]+)',
-        parse: {
-          user: (value) => value.replace(/^@/, ''),
+    
+    Day: createNativeStackScreen({
+      screen: Day,
+      options: ({ route, navigation }) => ({
+        headerLeft: () => {
+          const currentDate = route.params?.date || new Date().toISOString().split('T')[0];
+          const prevDate = new Date(currentDate);
+          prevDate.setDate(prevDate.getDate() - 1);
+          const prevDateString = prevDate.toISOString().split('T')[0];
+
+          return (
+            <HeaderButton onPress={() => {
+              navigation.navigate('Day', { date: prevDateString });
+            }}>
+              <Text>⬅️</Text>
+            </HeaderButton>
+          );
         },
-        stringify: {
-          user: (value) => `@${value}`,
+        headerBackVisible: false,
+        headerRight: () => {
+          const currentDate = route.params?.date || new Date().toISOString().split('T')[0];
+          const nextDate = new Date(currentDate);
+          nextDate.setDate(nextDate.getDate() + 1);
+          const nextDateString = nextDate.toISOString().split('T')[0];
+
+          return (
+            <HeaderButton onPress={() => {
+              navigation.navigate('Day', { date: nextDateString });
+            }}>
+              <Text>➡️</Text>
+            </HeaderButton>
+          );
         },
-      },
+        title: `Meal Plan: ${route.params?.date || 'Today'}`,
+        headerTitleAlign: 'center',
+      }),
     }),
+
     Settings: createNativeStackScreen({
       screen: Settings,
       options: ({ navigation }) => ({
         presentation: 'modal',
         headerRight: () => (
-          <HeaderButton onPress={navigation.goBack}>
-            <Text>Close</Text>
+          <HeaderButton onPress={() => navigation.navigate('Info')}>
+            <Text>Info</Text>
           </HeaderButton>
         ),
       }),
     }),
+
+    Info: createNativeStackScreen({
+      screen: Info,
+      options: {
+        presentation: 'modal',
+        title: 'Info',
+      },
+    }),
+
     NotFound: createNativeStackScreen({
       screen: NotFound,
       options: {
-        title: '404',
-      },
-      linking: {
-        path: '*',
+        title: 'Not Found',
       },
     }),
   },
