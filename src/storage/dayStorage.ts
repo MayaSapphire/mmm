@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const mealKey = (date: string, mealType: 'breakfast' | 'lunch' | 'dinner') =>
+export const mealKey = (date: string, mealType: 'breakfast' | 'lunch' | 'dinner') =>
   `day:${date}:${mealType}`;
 
 export async function saveMeal(

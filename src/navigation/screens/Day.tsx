@@ -1,117 +1,116 @@
-import React, { useEffect, useState } from 'react';
-import { Text } from '@react-navigation/elements';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, View, TextInput } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
+import { RootStackParamList } from '../index';
 import { loadMeal, saveMeal } from '../../storage/dayStorage';
-import { ScrollView, GestureHandlerRootView } from 'react-native-gesture-handler';
-type RootStackParamList = {
-  Day: { date: string };
-};
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Day'>;
+type DayScreenProps = NativeStackScreenProps<RootStackParamList, 'Day'>;
 
-export function Day({ route }: Props) {
+export function Day({ route, navigation }: DayScreenProps) {
   const theme = useTheme();
-  const date = route.params?.date || new Date().toISOString().split('T')[0];
-  const [breakfastMeal, setBreakfastMealState] = useState('');
-  const [lunchMeal, setLunchMealState] = useState('');
-  const [dinnerMeal, setDinnerMealState] = useState('');
+  const date = route.params.date;
+  
+  const [breakfastMeal, setBreakfastMeal] = useState<string>('');
+  const [lunchMeal, setLunchMeal] = useState<string>('');
+  const [dinnerMeal, setDinnerMeal] = useState<string>('');
 
   useEffect(() => {
-    let active = true;
+    let mounted = true;
 
     (async () => {
-      const breakfastValue = await loadMeal(date, 'breakfast');
-      const lunchValue = await loadMeal(date, 'lunch');
-      const dinnerValue = await loadMeal(date, 'dinner');
+      const breakfast = await loadMeal(date, 'breakfast');
+      const lunch = await loadMeal(date, 'lunch');
+      const dinner = await loadMeal(date, 'dinner');
 
-      if (!active) return;
-      setBreakfastMealState(breakfastValue ?? '');
-      setLunchMealState(lunchValue ?? '');
-      setDinnerMealState(dinnerValue ?? '');
+      if (mounted) {
+        if (breakfast) setBreakfastMeal(breakfast);
+        if (lunch) setLunchMeal(lunch);
+        if (dinner) setDinnerMeal(dinner);
+      }
     })();
 
     return () => {
-      active = false;
+      mounted = false;
     };
   }, [date]);
 
-  function getMeal(mealType: 'breakfast' | 'lunch' | 'dinner') {
-    switch (mealType) {
-      case 'breakfast':
-        return breakfastMeal;
-      case 'lunch':
-        return lunchMeal;
-      case 'dinner':
-        return dinnerMeal;
-    }
-  }
-
-  async function setMeal(
+  const handleMealChange = async (
     mealType: 'breakfast' | 'lunch' | 'dinner',
-    meal: string | null,
-  ) {
-    const normalizedMeal = meal ?? '';
-    if (mealType === 'breakfast') {
-      setBreakfastMealState(normalizedMeal);
-    } else if (mealType === 'lunch') {
-      setLunchMealState(normalizedMeal);
-    } else if (mealType === 'dinner') {
-      setDinnerMealState(normalizedMeal);
-    }
-    await saveMeal(date, mealType, normalizedMeal || null);
-  }
+    value: string
+  ) => {
+    if (mealType === 'breakfast') setBreakfastMeal(value);
+    if (mealType === 'lunch') setLunchMeal(value);
+    if (mealType === 'dinner') setDinnerMeal(value);
+    
+    await saveMeal(date, mealType, value);
+  };
 
   return (
-    <GestureHandlerRootView>
-      <ScrollView>
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}> 
-          <Text style={[styles.title, { color: theme.colors.text }]}>Breakfast</Text>
-          <TextInput
-            value={getMeal('breakfast')}
-            onChangeText={(text) => setMeal('breakfast', text)}
-            style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.title, { color: theme.colors.text }]}>
+        Meals for {date}
+      </Text>
+
+      <View style={styles.mealSection}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Breakfast</Text>
+        <TextInput
+          style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+          placeholder="Enter breakfast"
           placeholderTextColor={theme.colors.text}
-          />
+          value={breakfastMeal}
+          onChangeText={(value) => handleMealChange('breakfast', value)}
+        />
+      </View>
 
-          <Text style={[styles.title, { color: theme.colors.text }]}>Lunch</Text>
-          <TextInput
-            value={getMeal('lunch')}
-            onChangeText={(text) => setMeal('lunch', text)}
-            style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            placeholderTextColor={theme.colors.text}
-          />
+      <View style={styles.mealSection}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Lunch</Text>
+        <TextInput
+          style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+          placeholder="Enter lunch"
+          placeholderTextColor={theme.colors.text}
+          value={lunchMeal}
+          onChangeText={(value) => handleMealChange('lunch', value)}
+        />
+      </View>
 
-          <Text style={[styles.title, { color: theme.colors.text }]}>Dinner</Text>
-          <TextInput
-            value={getMeal('dinner')}
-            onChangeText={(text) => setMeal('dinner', text)}
-            style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            placeholderTextColor={theme.colors.text}
-          />
-        </View>
-      </ScrollView>
-    </GestureHandlerRootView>
+      <View style={styles.mealSection}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Dinner</Text>
+        <TextInput
+          style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+          placeholder="Enter dinner"
+          placeholderTextColor={theme.colors.text}
+          value={dinnerMeal}
+          onChangeText={(value) => handleMealChange('dinner', value)}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    gap: 10,
-    padding: 20,
+    padding: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  mealSection: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   input: {
-    height: 60,
-    padding: 10,
-    marginHorizontal: 0,
     borderWidth: 1,
-    borderRadius: 10,
-    fontSize: 18,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
   },
 });

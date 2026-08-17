@@ -1,148 +1,101 @@
-import {
-  createBottomTabNavigator,
-  createBottomTabScreen,
-} from '@react-navigation/bottom-tabs';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HeaderButton, Text } from '@react-navigation/elements';
-import { createStaticNavigation } from '@react-navigation/native';
-import {
-  createNativeStackNavigator,
-  createNativeStackScreen,
-} from '@react-navigation/native-stack';
-import { Image } from 'react-native';
-import bell from '../assets/bell.png';
-import newspaper from '../assets/newspaper.png';
-import { Home } from './screens/Home';
-import { NotFound } from './screens/NotFound';
-import { Settings } from './screens/Settings';
-import { Updates } from './screens/Updates';
 import { Day } from './screens/Day';
+import { Week } from './screens/Week';
+import { Settings } from './screens/Settings';
 import { Info } from './screens/Info';
+import { NotFound } from './screens/NotFound';
+import { Home } from './screens/Home';
+import { View } from 'react-native';
 
-type RootStackParamList = {
-  HomeTabs: undefined;
-  Settings: undefined;
-  Info: undefined;    
+export type RootStackParamList = {
   Day: { date: string };
+  Week: { startDate: string; endDate: string };
+  Settings: undefined;
+  Info: undefined;
   NotFound: undefined;
+  Home: undefined;
 };
 
+declare global {
+  namespace ReactNavigation {
+    interface RootParamList extends RootStackParamList {}
+  }
+}
 
-const HomeTabs = createBottomTabNavigator({
-  screens: {
-    Home: createBottomTabScreen({
-      screen: Home,
-      options: {
-        title: 'Feed',
-        tabBarIcon: ({ color, size }) => (
-          <Image
-            source={newspaper}
-            tintColor={color}
-            style={{
-              width: size,
-              height: size,
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export default function App() {
+  return <AppNavigator />
+}
+
+export function AppNavigator() {
+  return (
+    <View style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Home"
+            component={Home}
+          />
+          <Stack.Screen
+            name="Day"
+            component={Day}
+            options={({ route, navigation }) => {
+              const currentDate = route.params?.date ?? new Date().toISOString().split('T')[0];
+              
+              const changeDate = (days: number) => {
+                const target = new Date(currentDate);
+                target.setDate(target.getDate() + days);
+                navigation.navigate('Day', { date: target.toISOString().split('T')[0] });
+              };
+
+              return {
+                title: `Meal Plan: ${currentDate}`,
+                headerTitleAlign: 'center',
+                headerBackVisible: false,
+                headerLeft: () => (
+                  <HeaderButton onPress={() => changeDate(-1)}>
+                    <Text>⬅️</Text>
+                  </HeaderButton>
+                ),
+                headerRight: () => (
+                  <HeaderButton onPress={() => changeDate(1)}>
+                    <Text>➡️</Text>
+                  </HeaderButton>
+                ),
+              };
             }}
           />
-        ),
-      },
-    }),
-    Updates: createBottomTabScreen({
-      screen: Updates,
-      options: {
-        tabBarIcon: ({ color, size }) => (
-          <Image
-            source={bell}
-            tintColor={color}
-            style={{
-              width: size,
-              height: size,
-            }}
+
+          <Stack.Screen
+            name="Week"
+            component={Week}
+            options={({ route }) => ({
+              title: `${route.params.startDate} - ${route.params.endDate}`,
+              headerTitleAlign: 'center',
+            })}
           />
-        ),
-      },
-    }),
-  },
-});
 
-const RootStack = createNativeStackNavigator<RootStackParamList>({
-  screens: {
-    HomeTabs: createNativeStackScreen({
-      screen: HomeTabs,
-      options: {
-        title: 'Home',
-        headerShown: false,
-      },
-    }),
-    
-    Day: createNativeStackScreen({
-      screen: Day,
-      options: ({ route, navigation }) => ({
-        headerLeft: () => {
-          const currentDate = route.params?.date || new Date().toISOString().split('T')[0];
-          const prevDate = new Date(currentDate);
-          prevDate.setDate(prevDate.getDate() - 1);
-          const prevDateString = prevDate.toISOString().split('T')[0];
+          <Stack.Screen
+            name="Settings"
+            component={Settings}
+            options={({ navigation }) => ({
+              presentation: 'modal',
+              headerRight: () => (
+                <HeaderButton onPress={() => navigation.navigate('Info')}>
+                  <Text>Info</Text>
+                </HeaderButton>
+              ),
+            })}
+          />
 
-          return (
-            <HeaderButton onPress={() => {
-              navigation.navigate('Day', { date: prevDateString });
-            }}>
-              <Text>⬅️</Text>
-            </HeaderButton>
-          );
-        },
-        headerBackVisible: false,
-        headerRight: () => {
-          const currentDate = route.params?.date || new Date().toISOString().split('T')[0];
-          const nextDate = new Date(currentDate);
-          nextDate.setDate(nextDate.getDate() + 1);
-          const nextDateString = nextDate.toISOString().split('T')[0];
-
-          return (
-            <HeaderButton onPress={() => {
-              navigation.navigate('Day', { date: nextDateString });
-            }}>
-              <Text>➡️</Text>
-            </HeaderButton>
-          );
-        },
-        title: `Meal Plan: ${route.params?.date || 'Today'}`,
-        headerTitleAlign: 'center',
-      }),
-    }),
-
-    Settings: createNativeStackScreen({
-      screen: Settings,
-      options: ({ navigation }) => ({
-        presentation: 'modal',
-        headerRight: () => (
-          <HeaderButton onPress={() => navigation.navigate('Info')}>
-            <Text>Info</Text>
-          </HeaderButton>
-        ),
-      }),
-    }),
-
-    Info: createNativeStackScreen({
-      screen: Info,
-      options: {
-        presentation: 'modal',
-        title: 'Info',
-      },
-    }),
-
-    NotFound: createNativeStackScreen({
-      screen: NotFound,
-      options: {
-        title: 'Not Found',
-      },
-    }),
-  },
-});
-
-export const Navigation = createStaticNavigation(RootStack);
-
-type RootStackType = typeof RootStack;
-
-declare module '@react-navigation/native' {
-  interface RootNavigator extends RootStackType {}
+          <Stack.Screen name="Info" component={Info} options={{ presentation: 'modal', title: 'Info' }} />
+          <Stack.Screen name="NotFound" component={NotFound} options={{ title: 'Not Found' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </View>
+  );
 }
